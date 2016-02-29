@@ -348,6 +348,238 @@ private:
         }
 };
 
+//implement pod
+template<typename T>
+class PODTYPE
+{
+    static const bool isPod = false;
+};
+
+
+namespace datastructure
+{
+    // list container
+    template<typename T, bool pod>
+    class MoveImpl
+    {
+
+    };
+    template<typename T>
+    class MoveImpl<T, false>
+    {
+    public:
+        static void CopyObjects(T* dest, const T* src, int count)
+        {
+            if (src < dest)
+            {
+                for (int i = count - 1; i >= 0; --i)
+                {
+                    *(dest + i) = *(src + i)£»
+                }
+            }
+            else if (dest < src)
+            {
+                for (int i = 0; i < count; ++i)
+                    *dest++ = *src++;
+            }
+        }
+
+        static void ClearObjects(T* dest, int count)
+        {
+            for (int i = 0; i < count; ++i)
+                dest[i] = T();
+        }
+    };
+
+    template<typename T>
+    class MoveImpl<T, true>
+    {
+    public:
+        static void CopyObjects(T* dest, const T* src, int count)
+        {
+            if (count < 0) return;
+            memmove_s(dest, sizeof(T)*count, src, sizeof(T)*count);
+        }
+
+        static void ClearObjects(T* dest, int count)
+        {
+
+        }
+    };
+
+    template<typename T>
+    class ArrayBase : public MoveImpl<T, PODTYPE<T>::isPod>
+    {
+    protected:
+        T* buffer;
+        int count;
+
+    public:
+        ArrayBase(): buffer(nullptr), count(0)
+        {
+        }
+
+        const T* GetInnerBuf() const
+        {
+            return buffer;
+        }
+
+        int GetCount() const
+        {
+            return count;
+        }
+
+        const T& GetAt(int index) const
+        {
+            static T _error;
+            if (index < 0 || index >= count) return _error;
+
+            return buffer[index];
+        }
+        
+        T& GetAt(int index)
+        {
+            static T _error;
+            if (index < 0 || index >= count) return _error;
+
+            return buffer[index];
+        }
+
+        const T& operator[](int index) const
+        {
+            return GetAt(index);
+        }
+
+        T& operator[](int index)
+        {
+            return GetAt(index);
+        }
+    };
+
+    template<typename T>
+    class ListBase : public ArrayBase<T>
+    {
+    protected:
+        int capacity;
+        bool lessMemMode;
+    protected:
+
+        int CalcCapacity(int expected)
+        {
+            int ret = capacity;
+
+            while (ret < expected)
+            {
+                ret = ret * 5 / 4 + 1;
+            }
+            return ret;
+        }
+
+        void MakeRoom(int index, int _count)
+        {
+            int newCount = ArrayBase<T>::count + _count;
+            if (capacity < newCount)
+            {
+                int newCap = CalcCapacity(newCount);
+                T* newBuf = new T[newCap];
+                MoveImpl<T, PODTYPE<T>::isPod>::CopyObjects(newBuf, ArrayBase<T>::buffer, index);
+                MoveImpl<T, PODTYPE<T>::isPod>::CopyObjects(newBuf + index + _count, ArrayBase<T>::buffer + index, ArrayBase<T>::count - index);
+                delete[] ArrayBase<T>::buffer;
+                ArrayBase<T>::buffer = newBuf;
+                capacity = newCap;
+            }
+            else
+            {
+                MoveImpl<T, PODTYPE<T>::isPod>::CopyObjects(ArrayBase<T>::buffer + index + _count, ArrayBase<T>::buffer + index, ArrayBase<T>::count - index);
+
+            }
+            ArrayBase<T>::count = newCount;
+        }
+        
+        void ReleaseUnneccesaryBuffer(int previousCount)
+        {
+            if (ArrayBase<T>::buffer && ArrayBase<T>::count < previousCount)
+            {
+                MoveImpl<T, PODTYPE<T>::isPod>::ClearObjects(ArrayBase<T>::buffer + count, previousCount - ArrayBase<T>::count);
+
+            }
+            if (lessMemMode && ArrayBase<T>::count < capacity / 2)
+            {
+                int newCap = capacity * 5 / 8;
+                T* newBuf = new T[newCap];
+                MoveImpl<T, PODTYPE<T>::isPod>::CopyObjects(newBuf, ArrayBase<T>::buffer, ArrayBase<T>::count);
+                delete[] ArrayBase<T>::buffer;
+                ArrayBase<T>::buffer = newBuf;
+                capacity = newCap;
+            }
+        }
+
+    public:
+        ListBase() : capacity(0), lessMemMode(true)
+        {
+
+        }
+
+        ~ListBase()
+        {
+            delete[] ArrayBase<T>::buffer;
+        }
+
+        void SetMemoryMode(bool mode)
+        {
+            lessMemMode = mode;
+        }
+
+        bool GetMemoryMode() const
+        {
+            return lessMemMode;
+        }
+
+        bool RemoveAt(int index)
+        {
+            if (index < 0 || index >= ArrayBase<T>::count)
+                return false;
+
+            int previousCount = ArrayBase<T>::count;
+            --ArrayBase<T>::count;
+            MoveImpl<T, PODTYPE<T>::isPod>::CopyObjects(ArrayBase<T>::buffer + index, ArrayBase<T>::buffer + index + 1, ArrayBase<T>::count - index);
+            ReleaseUnneccesaryBuffer(previousCount);
+            return true;
+        }
+        
+        bool RemoveRange(int index, int _count)
+        {
+            if (index < 0 || index >= ArrayBase<T>::count)
+                return false;
+            if (_count < 0 || index + _count >ArrayBase<T>::count)
+                return false;
+
+            int previousCount = ArrayBase::count;
+            MoveImpl<T, PODTYPE<T>::isPod>::CopyObjects(ArrayBase<T>::buffer + index, ArrayBase<T>::buffer + index + _count, ArrayBase<T>::count - index - _count);
+            ArrayBase<T>::count -= _count;
+            ReleaseUnneccesaryBuffer(previousCount);
+            return true;
+        }
+
+        bool Clear()
+        {
+            int previousCount = ArrayBase<T>::count;
+            ArrayBase<T>::count = 0;
+            if (lessMemMode)
+            {
+                delete[] ArrayBase<T>::buffer;
+                ArrayBase<T>::buffer = nullptr;
+                capacity = 0;
+            }
+            else
+            {
+                ReleaseUnneccesaryBuffer(previousCount);
+            }
+            return true;
+        }
+    };
+}
+
 namespace algo
 {
     template<typename T>
