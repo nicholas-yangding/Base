@@ -1,5 +1,4 @@
 @pragma once
-#include <windows.h>
 
 //this is object string
 
@@ -348,3 +347,34 @@ private:
             return RefString<T>(*this, string, index, 0);
         }
 };
+
+namespace algo
+{
+    template<typename T>
+    void Swap(T& lhs, T& rhs)
+    {
+        T& tmp = lhs;
+        lhs = rhs;
+        rhs = tmp;
+    }
+
+    //a simple qsort
+    template<typename T>
+    void Qsort(int low_index, int high_index_exclude, T array[])
+    {
+        if (high_index_exclude < low_index + 2) return;
+
+        int _begin = low_index, _end = high_index_exclude;
+        while (_begin < _end)
+        {
+            while (--_end > _begin && array[_end] >= array[low_index]);
+            while (++_begin < _end && array[_begin] <= array[low_index]);
+
+            if (_begin < _end) Swap(array[_begin], array[_end]);
+        }
+        Swap(a[low_index], a[_end]);
+
+        Qsort(low_index, _end, array);
+        Qsort(_end + 1, high_index_exclude, array);
+    }
+}
