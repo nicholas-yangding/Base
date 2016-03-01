@@ -350,10 +350,44 @@ private:
 
 //implement pod
 template<typename T>
-class PODTYPE
+struct PODTYPE
 {
     static const bool isPod = false;
 };
+
+#define PODTYPETRUE(type)\
+    template<> struct PODTYPE<type>{static const bool isPod = true;}
+#define PODTYPEFALSE(type)\
+    template<> struct PODTYPE<type>{static const bool isPod = false;}
+
+PODTYPETRUE(byte);
+PODTYPETRUE(bool);
+PODTYPETRUE(char);
+PODTYPETRUE(unsigned char);
+PODTYPETRUE(short);
+PODTYPETRUE(unsigned short);
+PODTYPETRUE(int);
+PODTYPETRUE(unsigned int);
+PODTYPETRUE(long);
+PODTYPETRUE(unsigned long);
+PODTYPETRUE(float);
+PODTYPETRUE(double);
+PODTYPETRUE(wchar_t);
+
+template<typename T> 
+struct PODTYPE<T*>{static const bool isPod = true;};
+template<typename T>
+struct PODTYPE<T&>{static const bool isPod = true};
+template<typename T>
+struct PODTYPE<const T>{static const bool isPod = PODTYPE<T>::isPod};
+template<typename T>
+struct PODTYPE<volatile T>{static const bool isPod = PODTYPE<T>::isPod};
+template<typename T>
+struct PODTYPE<const volatile T>{static const bool isPod = PODTYPE<T>::isPod};
+template<typename T, int Size>
+struct PODTYPE<T[Size]>{static const bool isPod = PODTYPE<T>::isPod};
+template<typename T, typename C>
+struct PODTYPE<T C::*> { static const bool isPod = true; };
 
 
 namespace datastructure
