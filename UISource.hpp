@@ -30,7 +30,7 @@ private:
 
         while (length-- && *lhsBuffer)
         {
-            if£¨*start++ != *lhsBuffer++)
+            if(start++ != *lhsBuffer++)
             return *lhsBuffer - *start;
          
         }
@@ -408,7 +408,7 @@ namespace datastructure
             {
                 for (int i = count - 1; i >= 0; --i)
                 {
-                    *(dest + i) = *(src + i)£»
+                    *(dest + i) = *(src + i)Â£Â»
                 }
             }
             else if (dest < src)
